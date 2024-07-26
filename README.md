@@ -10,3 +10,7 @@ Then run the server:
 fastapi dev app/app.py
 ```
 You can then access the page on `localhost:8000`.
+
+
+Note that this is intended as a lightweight (in terms of dependencies) implementation,
+and thus will be less efficient at evaluating circuits as no optimisations have been included.
