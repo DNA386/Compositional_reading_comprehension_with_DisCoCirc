@@ -1,0 +1,414 @@
+<head>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js" xmlns="http://www.w3.org/1999/html"></script>
+    <link rel="icon" href="/static/favicon.png" type="image/png">
+    <title>QDisCoCirc Following</title>
+    <style>
+        body{
+            font-family: "Roboto Light", sans-serif;
+            margin: auto;
+            padding: 2em 5em;
+        }
+        .code {
+            font-family: 'JetBrains Mono Medium', monospace;
+        }
+        .error{
+            color: #bb0000;
+        }
+        .success{
+            color: #00A250;
+        }
+        .flex {
+            display: flex;
+            flex-direction: row;
+            gap: 1em;
+        }
+        button{
+            background: #dddddd;
+            outline: none;
+            border: none;
+            border-radius: 0.25em;
+            padding: 0.5em 1em;
+            transition: background-color 200ms;
+        }
+        button:hover, .toggle-button.selected:hover{
+            background: #aaaaaa;
+            cursor: pointer;
+        }
+        .toggle-button.selected{
+            background: #bbbbbb;
+            font-weight: bolder;
+        }
+        button.disabled{
+            opacity: 0.5;
+        }
+    </style>
+</head>
+
+<body>
+<div class="flex" style="justify-content: center">
+    <div id="app" style="max-width: 1200px">
+        <h1 style="font-family:'Mono Comic Sans MS'">Following with QDisCoCirc</h1>
+
+        <!--  Pre-load the images  -->
+        <img v-for="i in 4" :src="`/static/alice_${i}.png`" v-show="false">
+        <img v-for="i in 4" :src="`/static/bob_${i}.png`" v-show="false">
+
+        <div class="flex" style="gap: 5em; width: 100%">
+            <div style="width: 40%">
+                <!--  Story  -->
+                <div class="flex">
+                    <div>
+                        <h3>Input</h3>
+                        <p class="flex">
+                            <button class="toggle-button" :class="{selected: dirs===2}" @click="() => {dirs = 2}">2 Directions</button>
+                            <button class="toggle-button" :class="{selected: dirs===4}" @click="() => {dirs = 4}">4 Directions</button>
+                        </p>
+
+                        <textarea v-model="context" rows="10" style="width: 100%; padding: 1em"></textarea>
+                        <p>
+                            Is
+                            <select v-model="actor1" style="width: 8em">
+                                <option v-for="actor in textActors">{{actor}}</option>
+                            </select>
+                            going in the same direction as
+                            <select v-model="actor2" style="width: 8em">
+                                <option v-for="actor in textActors">{{actor}}</option>
+                            </select>
+                            ?
+                            <div v-if="actor1 === actor2 || !actor1 || !actor2" class="error">You must ask about two different characters.</div>
+                        </p>
+
+                        <h4>Preview</h4>
+                        <div v-for="{sentence, errors, i} in contextErrors" :key="i" class="flex" style="padding: 0.25em 0">
+                            <div style="flex-shrink: 0">{{sentence}}</div>
+                            <div style="color: #bb0000; flex-direction: column; gap: 0.25em; flex-shrink: 1" class="flex">
+                                <div v-for="err in errors" :key="err">- {{err}}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <p>
+                    <button @click="submitContext" :class="{disabled: !contextValid}">Submit</button>
+                </p>
+
+                <div>
+                    <h3>Instructions</h3>
+                    <p>Enter the story with one sentence per line, ending with a full stop.</p>
+                    <p>
+                        All sentences must be in one of the following forms:
+                        <ul class="code">
+                            <li class="flex"><span>(I)</span> NAME walks DIRECTION.</li>
+                            <li class="flex"><span>(T)</span> NAME turns ROTATION.</li>
+                            <li class="flex"><span>(F)</span> NAME follows NAME.</li>
+                            <li class="flex"><span>(O) </span> NAME goes in the opposite direction of NAME.</li>
+                        </ul>
+                        Characters are introduced when they feature as the <span style="text-style: italic">subject</span> of a sentence.
+                        Once introduced, their names may feature in all name positions in all sentence types.
+                        <br>
+                        Note that unexpected results may occur if the actor's initial direction is undefined,
+                        for example if they are introduced by a (T) type sentence.
+                    </p>
+                    <h4>Vocabulary</h4>
+                    <p>
+                        <div>Directions</div>
+                        <div class="flex code" style="flex-wrap: wrap">
+                            <div v-for="dir in vocab.dirs[dirs]">{{dir}}</div>
+                        </div>
+                    </p>
+                    <p>
+                        <div>Rotations</div>
+                        <div class="flex code" style="flex-wrap: wrap">
+                            <div v-for="rot in vocab.turns[dirs]">{{rot}}</div>
+                        </div>
+                    </p>
+                    <p>
+                        <div>Names</div>
+                        <div class="flex code" style="flex-wrap: wrap">
+                            <div v-for="name in vocab.names">{{name}}</div>
+                        </div>
+                    </p>
+                </div>
+
+            </div>
+
+            <!--  Results  -->
+            <div class="flex" style="flex-direction: column; flex-grow: 1; width: 50%">
+                <h3 style="margin-bottom: 0">Results</h3>
+                <div class="flex" style="text-align: center; align-items: center; gap: 0; justify-content: center">
+                    <div>
+                        <img :src="`/static/alice_${resp.data ? directionIndices[resp.data.final_dir[0]] : loadingImage + 1}.png`" style="width: 100px">
+                        <h4>{{ actor1 }}</h4>
+                        <div v-if="resp.data">
+                            <div>{{ resp.data.final_dir[0] ?? 'Undefined' }}</div>
+                            <div>({{ resp.data.entangle_depth[0] }} Steps)</div>
+                        </div>
+                    </div>
+                    <div style="width: 5em; position: relative">
+                        <div v-if="resp.data && !resp.data.separated">Entangled</div>
+                        <div v-if="resp.data && !resp.data.separated" style="width: 100%; height: 4px; border-radius: 2px; background: black; margin-top: 0.5em"></div>
+                    </div>
+                    <div>
+                        <img :src="`/static/bob_${resp.data ? directionIndices[resp.data.final_dir[1]] : loadingImage + 1}.png`" style="width: 100px">
+                        <h4>{{ actor2 }}</h4>
+                        <div v-if="resp.data">
+                            <div>{{ resp.data.final_dir[1] ?? 'Undefined' }}</div>
+                            <div>({{ resp.data.entangle_depth[1] }} Steps)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div v-if="resp.data">
+                    <h3>Story</h3>
+                    <div v-for="sentence in resp.data.context">{{sentence}}</div>
+                    <div style="padding: 0.25em 0">{{resp.data.question}}</div>
+                </div>
+
+                <div v-if="resp.data">
+                    <h3>
+                        {{resp.data.model}} Model:
+                        <span v-if="resp.data.correct" class="success">Correct</span>
+                        <span v-else class="error">Incorrect</span>
+                    </h3>
+
+                    <div style="display: flex; justify-content: space-between">
+                        <div :style="{'font-weight': resp.data.target === 'Yes' ? 'boldest' : 'normal'}">Yes</div>
+                        <div :style="{'font-weight': resp.data.target === 'No' ? 'bolder' : 'normal'}">No</div>
+                    </div>
+                    <div style="height: 1em; width: 100%; background: #dddddd; position: relative">
+                        <div style="position: absolute; top: 0; bottom: 0; background: #888888"
+                             :style="{
+                                left: resp.data.yes_prob > 0.5 ? `${(1 - resp.data.yes_prob) * 100}%` : '50%',
+                                width: `${Math.abs(resp.data.yes_prob - 0.5) * 100}%`,
+                                background: resp.data.correct ? '#00A250' : '#bb0000',
+                             }"
+                        ></div>
+                        <div style="position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: black"></div>
+                    </div>
+                </div>
+
+                <div v-if="resp.data">
+                    <h3>Diagram</h3>
+                    <img :src="'data:image/png;base64, ' + resp.data.context_diag" style="width: 100%" />
+                </div>
+
+                <div v-if="resp.data">
+                    <h3>Metadata</h3>
+                    <div v-for="k in Object.keys(resp.data)" class="flex">
+                        <div style="color: #555555; width: 10em; flex-shrink: 0">{{k}}</div>
+                        <div style="word-wrap: break-word; overflow: auto; max-height: 10em">{{resp.data[k]}}</div>
+                    </div>
+                </div>
+
+                <h4 v-if="resp.error" class="error">
+                    Oops! {{ resp.errorMessage }}
+                </h4>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script lang="text/javascript">
+    const { createApp } = Vue
+
+    const ACTOR_NAMES = [
+        "Bob",
+        "Alice",
+        "Daniel",
+        "Dorothy",
+        "Paul",
+        "Helen",
+        "Jason",
+        "Ruth",
+        "Michael",
+        "Linda",
+        "Brian",
+        "Donna",
+        "Matthew",
+        "Betty",
+        "Charles",
+        "Patricia",
+        "James",
+        "Susan",
+        "George",
+        "Sarah",
+        "Richard",
+        "Karen",
+        "Christopher",
+        "Nancy",
+        "Steven",
+        "Carol",
+        "Kevin",
+        "Anna",
+        "Edward",
+        "Lisa",
+        "Eric",
+        "Michelle",
+        "Timothy",
+        "Jennifer",
+        "Robert",
+        "Kimberly",
+        "Mark",
+        "Jessica",
+        "David",
+        "Laura",
+        "Joseph",
+        "Maria",
+        "John",
+        "Sharon",
+        "William",
+        "Elizabeth",
+        "Andrew",
+        "Emily",
+        "Thomas",
+        "Sandra",
+        "Kenneth",
+        "Mary",
+        "Ben",
+        "Margaret",
+        "Jack",
+        "Paula",
+        "Ethan",
+        "Natalie",
+        "Peter",
+        "Victoria",
+        "Charlie",
+    ]
+
+    createApp({
+        data() {
+          return {
+            dirs: 2,
+            context: "Alice walks north. \nBob walks south. \nAlice follows Bob.",
+            actor1: "Alice",
+            actor2: "Bob",
+            resp: {
+                data: undefined,
+                error: undefined,
+                errorMessage: "",
+            },
+            directionIndices: {
+                undefined: 0,
+                south: 1,
+                east: 2,
+                north: 3,
+                west: 4,
+            },
+            N_LOADING_FRAMES: 4,
+            loadingTimeout: undefined,
+            loadingImage: 0,
+            vocab: {
+                names: ACTOR_NAMES,
+                dirs: {
+                  2: ["north", "south"],
+                  4: ["north", "south", "east", "west"],
+                },
+                turns: {
+                    2: ["around"],
+                    4: ["around", "left", "right"],
+                },
+                interactions: ["follows", "goes in the opposite direction of"]
+            }
+          }
+        },
+        computed: {
+            formatContext () {
+                return this.context.split('\n')
+            },
+            contextErrors () {
+                return this.formatContext.map((sentence, i) => {
+                    const errors = this.checkSentence(sentence)
+                    return {sentence, errors, i}
+                })
+            },
+            contextValid () {
+                const errors = this.contextErrors.flatMap(sent => sent.errors)
+                return errors.length === 0 && this.actor1 !== this.actor2
+            },
+            textActors () {
+                const allWords = this.context.split(/\s|\n/)
+                const present = this.vocab.names.filter(actor => allWords.includes(actor))
+                return present
+            }
+        },
+        methods: {
+          checkSentence (sentence) {
+              const errors = []
+
+              sentence = sentence.replace(/\.\s*$/, '')
+              const words = sentence.split(" ").filter(w => w.length > 0)
+
+              if (words.length < 3) {errors.push("Incomplete sentence")}
+              if (!this.vocab.names.includes(words[0])) {errors.push("Invalid name " + words[0])}
+              switch (words[1]) {
+                  case "walks":
+                      if (!this.vocab.dirs[this.dirs].includes(words[2])) {
+                          errors.push(`Invalid direction "${words[2]}". Allowed: ${this.vocab.dirs[this.dirs]}` )
+                      }
+                      break
+                  case "turns":
+                      if (!this.vocab.turns[this.dirs].includes(words[2])) {
+                          errors.push(`Invalid rotation "${words[2]}" Allowed: ${this.vocab.turns[this.dirs]}` )
+                      }
+                      break
+                  case "follows":
+                      if (!this.vocab.names.includes(words[2])) {
+                          errors.push(`Invalid name "${words[2]}".` )
+                      }
+                      break
+                  case "goes":
+                      if (!this.vocab.names.includes(words[words.length - 1])) {
+                          errors.push(`Invalid name "${words[words.length - 1]}".` )
+                      }
+                      if (sentence.includes("goes in the opposite direction of")) {break}
+                  default:
+                      errors.push("Unrecognised sentence type")
+              }
+              return errors
+          },
+          async submitContext () {
+              try {
+                  this.startLoading()
+                  this.resp.data = undefined
+                  this.resp.error = false
+
+                  const resp = await fetch(
+                      `/eval/${this.dirs}`,
+                      {
+                          method: "POST",
+                          headers: {
+                              "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({
+                              context: this.formatContext,
+                              actor1: this.actor1,
+                              actor2: this.actor2,
+                          })
+                      }
+                  )
+                  if (resp.ok) {
+                      this.resp.data = await resp.json()
+                  } else {
+                      this.resp.error = true
+                      message = await resp.json()
+                      this.resp.errorMessage = message ? message.detail : 'Internal server error.'
+                  }
+              } catch (e) {
+                  console.log("Failed", e)
+                  this.resp.error = true
+                  this.resp.errorMessage = "Failed to submit:" + e
+              }
+              this.stopLoading()
+          },
+          startLoading () {
+              this.loadingTimeout = window.setInterval(() => {
+                  this.loadingImage = (this.loadingImage + 1) % this.N_LOADING_FRAMES
+              }, 150)
+          },
+          stopLoading() {
+              window.clearTimeout(this.loadingTimeout)
+          }
+        }
+      }).mount('#app')
+</script>
+</body>
