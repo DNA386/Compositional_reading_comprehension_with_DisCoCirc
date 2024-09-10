@@ -48,7 +48,10 @@ class ShowcaseModel(FollowingParserNoHO):
 
     def build(self, context, actor1, actor2, filename):
         context_diag = self.parse(context)
-        context_diag.draw(path=CONTEXT_IMG_PATH / filename)
+        context_diag.draw(
+            path=CONTEXT_IMG_PATH / filename,
+            figsize=(2 * len(context_diag.cod), len(context_diag.boxes) / 2)
+        )
 
         yes_question = get_ques_diag(nouns=True, ho=False)
         no_question = get_ques_diag(neg=True, nouns=True, ho=False)

@@ -47,7 +47,7 @@
 <body>
 <div class="flex" style="justify-content: center">
     <div id="app" style="max-width: 1200px">
-        <h1 style="font-family:'Mono Comic Sans MS'">Following with QDisCoCirc</h1>
+        <h1 style="font-weight:bold">Following with QDisCoCirc</h1>
 
         <!--  Pre-load the images  -->
         <img v-for="i in 4" :src="`/static/alice_${i}.png`" v-show="false">
@@ -105,7 +105,8 @@
                         </ul>
                         Characters are introduced when they feature as the <span style="text-style: italic">subject</span> of a sentence.
                         Once introduced, their names may feature in all name positions in all sentence types.
-                        <br>
+                    </p>
+                    <p>
                         Note that unexpected results may occur if the actor's initial direction is undefined,
                         for example if they are introduced by a (T) type sentence.
                     </p>
@@ -141,7 +142,11 @@
                         <h4>{{ actor1 }}</h4>
                         <div v-if="resp.data">
                             <div>{{ resp.data.final_dir[0] ?? 'Undefined' }}</div>
-                            <div>({{ resp.data.entangle_depth[0] }} Steps)</div>
+                            <div>
+                                ({{ resp.data.entangle_depth[0] }}
+                                <span v-if="resp.data.entangle_depth[0] == 1">Step)</span>
+                                <span v-else>Steps)</span>
+                            </div>
                         </div>
                     </div>
                     <div style="width: 5em; position: relative">
@@ -153,7 +158,11 @@
                         <h4>{{ actor2 }}</h4>
                         <div v-if="resp.data">
                             <div>{{ resp.data.final_dir[1] ?? 'Undefined' }}</div>
-                            <div>({{ resp.data.entangle_depth[1] }} Steps)</div>
+                            <div>
+                                ({{ resp.data.entangle_depth[1] }}
+                                <span v-if="resp.data.entangle_depth[1] == 1">Step)</span>
+                                <span v-else>Steps)</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -185,19 +194,60 @@
                         ></div>
                         <div style="position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: black"></div>
                     </div>
+                    <p>
+                        Sureness: {{Math.abs(resp.data.overlaps_real[0] - resp.data.overlaps_real[1] / 2)}}
+                    </p>
                 </div>
 
                 <div v-if="resp.data">
                     <h3>Diagram</h3>
-                    <img :src="'data:image/png;base64, ' + resp.data.context_diag" style="width: 100%" />
+                    <div style="display: flex; align-items: center;justify-content: center">
+                        <img :src="'data:image/png;base64, ' + resp.data.context_diag" style="max-width: 100%; max-height: 20em;" />
+                    </div>
                 </div>
 
                 <div v-if="resp.data">
                     <h3>Metadata</h3>
-                    <div v-for="k in Object.keys(resp.data)" class="flex">
-                        <div style="color: #555555; width: 10em; flex-shrink: 0">{{k}}</div>
-                        <div style="word-wrap: break-word; overflow: auto; max-height: 10em">{{resp.data[k]}}</div>
+                    <button @click="showingMetadata = !showingMetadata">
+                        <div v-if="showingMetadata">Collapse</div>
+                        <div v-else>Expand</div>
+                    </button>
+                    <div v-if="showingMetadata">
+                        <p>
+                            <div v-for="k in Object.keys(resp.data)" class="flex">
+                                <div style="color: #555555; width: 10em; flex-shrink: 0">{{k}}</div>
+                                <div style="word-wrap: break-word; overflow: auto; max-height: 10em">{{resp.data[k]}}</div>
+                            </div>
+                        </p>
                     </div>
+                </div>
+
+                <div v-if="resp.data">
+                    <h3>Understanding the results</h3>
+                    <p>
+                        <span style="font-weight: bold">Entangled</span> The actors are marked as entangled when they either interact with each
+                        other, or interact with another character that interacts with the other. In such cases, the
+                        initial directions become irrelevant, as we can simply compute whether their relative directions
+                        match.
+                    </p>
+                    <p>
+                        <span style="font-weight: bold">Separated</span> The actors are marked as separated when they are not entangled.
+                        This means the initial direction faced by the actors is required to answer the question.
+                    </p>
+                    <p>
+                        <span style="font-weight: bold">(Inference) steps</span> For each actor in the question we record the number of supporting
+                        sentences required to answer the question.
+                    </p>
+                    <p>
+                        <span style="font-weight: bold">Result</span> We visualise the model's result as a probability
+                        of answering 'yes'. This is coloured according to whether or not the model was correct.
+                    </p>
+                    <p>
+                        <span style="font-weight: bold">Sureness</span> This number, between 0 and 0.5, quantifies how
+                        confident the model is in its answer.
+                        Calculated as the maximum difference in the (pre-softmax) amplitudes the model can
+                        tolerate before switching answers.
+                    </p>
                 </div>
 
                 <h4 v-if="resp.error" class="error">
@@ -297,6 +347,7 @@
             N_LOADING_FRAMES: 4,
             loadingTimeout: undefined,
             loadingImage: 0,
+            showingMetadata: false,
             vocab: {
                 names: ACTOR_NAMES,
                 dirs: {
