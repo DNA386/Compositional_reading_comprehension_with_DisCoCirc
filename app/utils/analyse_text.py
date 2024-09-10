@@ -91,7 +91,8 @@ def get_inf_steps(story, char1, char2, ans=None):
                 same_dir = mod1 == mod2
                 assert ans is None or same_dir == ans, "Did not match at common ancestor"
                 # Record the details we need to search for the initial directions later.
-                resume_at = i
+                # Resume at the index next from the start of the story
+                resume_at = len(story) - (i + 1)
                 break
 
         if separated:
@@ -103,9 +104,8 @@ def get_inf_steps(story, char1, char2, ans=None):
             assert ans is None or same_dir == ans, "Did not match at initialisations"
         else:
             # Need to continue searching for the initial directions. Both trackers point to the same name.
-            for sent in story[:resume_at:-1]:
+            for sent in story[resume_at::-1]:
                 subj, verb, obj, mod, bottom = decompose_sent(sent)
-
                 if tracker1 == subj:
                     tracker1, bottom1, mod1, _, _ = update_state(tracker1, bottom2, mod1, 0, 0, mod, obj, bottom)
                     tracker2, bottom2, mod2, _, _ = update_state(tracker2, bottom2, mod2, 0, 0, mod, obj, bottom)
