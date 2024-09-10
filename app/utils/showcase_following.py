@@ -9,7 +9,8 @@ import torch
 from app.utils.parsing import get_ques_diag, find_wire, FollowingParserNoHO, PersonFunctor
 from app.utils.analyse_text import get_inf_steps
 
-CONTEXT_IMG_PATH = path=Path(os.path.dirname(__file__)).parent / 'temp'
+CONTEXT_IMG_PATH = Path(os.path.dirname(__file__)).parent / 'temp'
+
 
 class ShowcaseModel(FollowingParserNoHO):
     model_functor: CircuitFunctor
@@ -112,12 +113,10 @@ MODEL_PATH = Path(os.path.dirname(__file__)).parent / "models"
 class Showcase2dirModel(ShowcaseModel):
     name = "2Dir"
     boxes_path = MODEL_PATH / "2DIR_BOX_CIRCUITS.pkl"
-    model_path = MODEL_PATH / "ext_following_model_taskextfoll3-2dir_QF-Binary-Statement-PostSelect0_"\
-                              "TF-group-nouns_HO-quantum_HOQ-name-only_Sim4Following-3-1-mixed-dA_3.pkl"
+    model_path = MODEL_PATH / "2-directional-model.pkl"
 
 
 class Showcase4dirModel(ShowcaseModel):
     name = "4Dir"
     boxes_path = MODEL_PATH / "4DIR_BOX_CIRCUITS.pkl"
-    model_path = MODEL_PATH / "extfoll3_model_taskextfoll3-axioms-anc_QF-Binary-Statement-PostSelect0_"\
-                              "TF-remove-the_HO-no-discards_HOQ-name-only_Sim4Ansatz-3-1-pure-dA_12.pkl"
+    model_path = MODEL_PATH / "4-directional-model.pkl"

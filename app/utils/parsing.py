@@ -105,6 +105,7 @@ def person_ar(box):
         return person
     return box
 
+
 PersonFunctor = Functor(lambda o: o, person_ar)
 
 
