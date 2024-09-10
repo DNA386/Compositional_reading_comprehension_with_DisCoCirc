@@ -11,6 +11,6 @@ setup(
         "numpy<2",
         "discopy>=0.6,<1",
         "uvicorn>=0.30",
-        "fastapi>=0.111",
+        "fastapi[standard]>=0.111",
     ]
 )
