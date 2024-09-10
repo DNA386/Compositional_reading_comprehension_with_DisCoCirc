@@ -46,6 +46,8 @@ class ShowcaseModel(FollowingParserNoHO):
 
         self.model_functor = CircuitFunctor(ob={self.n: 1}, ar=ar)
 
+        CONTEXT_IMG_PATH.mkdir(exist_ok=True)
+
     def build(self, context, actor1, actor2, filename):
         context_diag = self.parse(context)
         context_diag.draw(
