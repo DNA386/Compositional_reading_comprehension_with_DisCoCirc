@@ -2,7 +2,7 @@
 PEOPLE = [
     "Andrew", "Bill", "Clara", "Denise", "Eric", "Fred", "Gillian", "Heidi",
     # Original Babi
-    "Mary", "Sandra", "Daniel", "john",
+    "Mary", "Sandra", "Daniel", "John",
 ]  # 8
 people = [p.lower() for p in PEOPLE]
 

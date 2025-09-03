@@ -1,6 +1,4 @@
-from lambeq.backend.grammar import Ty, Box, Word, Id, Diagram, Swap
-
-from utils.ansatz import DBox
+from lambeq.backend.grammar import Ty, Box, Word, Id, Diagram, Swap, Daggered
 
 
 def find_wire(diagram: Diagram, name: str) -> int:
@@ -24,26 +22,26 @@ class FollowingParser:
         self.n = Ty("n")
 
         self.person = Word("person", self.n)
-        self.walks_north = DBox("walks_north", self.n, self.n)
-        self.walks_south = DBox("walks_south", self.n, self.n)
-        self.walks_east = DBox("walks_east", self.n, self.n)
-        self.walks_west = DBox("walks_west", self.n, self.n)
-        self.follows = DBox("follows", self.n**2, self.n**2)
+        self.walks_north = Box("walks_north", self.n, self.n)
+        self.walks_south = Box("walks_south", self.n, self.n)
+        self.walks_east = Box("walks_east", self.n, self.n)
+        self.walks_west = Box("walks_west", self.n, self.n)
+        self.follows = Box("follows", self.n**2, self.n**2)
         if self.with_axioms:
-            self.turns_left = DBox("turns_left", self.n, self.n)
-            self.turns_right = DBox("turns_left", self.n, self.n, dagger=True)
+            self.turns_left = Box("turns_left", self.n, self.n)
+            self.turns_right = Daggered(Box("turns_left", self.n, self.n))
             if self.n_directions == 4:
                 self.turns_around = self.turns_left >> self.turns_left
             else:
-                self.turns_around = DBox("turns_around", self.n, self.n)
+                self.turns_around = Box("turns_around", self.n, self.n)
             self.goes_opdir = self.follows >> self.turns_around @ Id(self.n)
         else:
-            self.turns_left = DBox("turns_left", self.n, self.n)
-            self.turns_right = DBox("turns_right", self.n, self.n)
-            self.turns_around = DBox("turns_around", self.n, self.n)
-            self.goes_opdir = DBox("opp_dir", self.n**2, self.n**2)
+            self.turns_left = Box("turns_left", self.n, self.n)
+            self.turns_right = Box("turns_right", self.n, self.n)
+            self.turns_around = Box("turns_around", self.n, self.n)
+            self.goes_opdir = Box("opp_dir", self.n**2, self.n**2)
 
-        self.discard = DBox("DISCARD", self.n, Ty())
+        self.discard = Box("DISCARD", self.n, Ty())
 
     def get_ques_diag(self, negative=False, nouns=False, higher_order=True):
         n = self.n

@@ -63,12 +63,6 @@ grab = lambda p, g, o, there: f"{p} {g} the {o}{' there' if there else ''}."
 drop = lambda p, d, o, there: f"{p} {d} the {o}{' there' if there else ''}."
 
 
-@dataclass
-class Config:
-    depth: int = 1
-    max_nouns: int | None = None
-
-
 def update_location(p, l, world_state, i):
     if p not in world_state.people:
         world_state.add_person(p)
@@ -106,7 +100,10 @@ def update_carrying(p, o, is_carrying, world_state, i):
         world_state.state[o].supporting_facts.append(i)
 
 
-def generate(people, objects, locations, movements, grabs, drops, config):
+def generate(
+        people, objects, locations, movements, grabs, drops,
+        depth=1, max_nouns=None
+):
     attempts = 0
     while attempts < 200:
         attempts += 1
@@ -119,7 +116,7 @@ def generate(people, objects, locations, movements, grabs, drops, config):
                 drop: drops,
             }
             
-            for i in range(config.depth):
+            for i in range(depth):
                 att = 0
                 p = None
                 o = None
@@ -142,14 +139,14 @@ def generate(people, objects, locations, movements, grabs, drops, config):
                         there = random.choice([True, False])
                         p = random.choice(
                             people 
-                            if config.max_nouns is None or world_state.get_n_nouns() < config.max_nouns
+                            if max_nouns is None or world_state.get_n_nouns() < max_nouns
                             else world_state.people
                         )
                         o = random.choice([
                             ob 
                             for ob in (
                                 objects 
-                                if config.max_nouns is None or world_state.get_n_nouns() < config.max_nouns
+                                if max_nouns is None or world_state.get_n_nouns() < max_nouns
                                 else world_state.objects
                             )
                             if (sent_schema == grab and (ob not in world_state.state or world_state.state[ob].carried is None))
@@ -160,7 +157,7 @@ def generate(people, objects, locations, movements, grabs, drops, config):
                             loc
                             for loc in (
                                 locations 
-                                if config.max_nouns is None or world_state.get_n_nouns() < config.max_nouns
+                                if max_nouns is None or world_state.get_n_nouns() < max_nouns
                                 else world_state.locations
                             )
                             if loc not in world_state.state or not world_state.state[p].location == loc
@@ -174,8 +171,7 @@ def generate(people, objects, locations, movements, grabs, drops, config):
 
                 sent = sent_schema(p, verb, l if sent_schema == move else o, there)
                 sentences.append(sent)
-                # print(sent)
-                
+
                 if sent_schema == move:
                     update_location(p, l, world_state, i)
                 else:
@@ -187,7 +183,7 @@ def generate(people, objects, locations, movements, grabs, drops, config):
             ans_class = Answers.yes if world_state.state[q_person].location == q_location else Answers.no
             question = f"Is {q_person} in the {q_location}?\t{ans_class.value}\t{' '.join(str(i) for i in world_state.state[q_person].supporting_facts)}"
 
-            return (sentences, question, ans_class), world_state
+            return (sentences, question, ans_class.value), world_state
         except Exception as e:
             pass
     raise ValueError("Ran out of attempts")
