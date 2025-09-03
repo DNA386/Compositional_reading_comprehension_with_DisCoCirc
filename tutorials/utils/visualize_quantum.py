@@ -47,10 +47,10 @@ def eigenpow(M, t):
 def eigenlift(f, M):
     """Lifts a numeric function to apply it to a matrix."""
     w, v = torch.linalg.eig(M)
-    T = torch.tensor(torch.zeros_like(M))
+    T = torch.zeros_like(M)
     for i in range(len(w)):
         eigen_val = w[i]
-        eigen_vec = torch.tensor(v[:, i])
+        eigen_vec = v[:, i].detach().clone()
         eigen_mat = torch.outer(eigen_vec, eigen_vec.conj())
         T += f(eigen_val) * eigen_mat
     return T
@@ -151,9 +151,9 @@ def plot_points(
     if n_skipped > 0:
         print("skipping", n_skipped)
 
-    for point in points:
+    for i, point in enumerate(points):
         if point is not None:
-            b.add_points(point)
+            b.add_points(point, colors=[colors[i]])
 
     if annotations is not None:
         for annotation in annotations:
@@ -180,7 +180,10 @@ def plot_points(
                 b.add_arc(*bloch_arc, **arc[2])
 
     if vector_points is not None:
-        b.add_vectors([v for v in vector_points if v is not None])
+        b.add_vectors(
+            [v for v in vector_points if v is not None],
+            colors=vector_cols
+        )
 
     if show:
         b.show()
@@ -189,8 +192,8 @@ def plot_points(
 
 
 def get_remote_prep_marker_states() -> List[State1q]:
-    zero = torch.tensor([1. + 0j, 0.])
-    one = torch.tensor([0. + 0j, 1.])
+    zero = torch.tensor([1. + 0j, 0.], dtype=torch.cdouble)
+    one = torch.tensor([0. + 0j, 1.], dtype=torch.cdouble)
     return [
         zero,
         one,
@@ -207,7 +210,7 @@ def get_remote_prep_states(n: int = 30) -> List[State1q]:
         torch.tensor([
             torch.cos(alpha / 2),
             torch.sin(alpha / 2) * torch.exp(beta * 1j),
-        ])
+        ], dtype=torch.cdouble)
         for alpha in torch.linspace(0, 2 * torch.pi, 2 * n)
         for beta in torch.linspace(0, 2 * torch.pi, n)
     ]
@@ -324,7 +327,7 @@ def display_2q_state(
     fig.patch.set_linewidth(0.5)
     fig.patch.set_edgecolor('#ccc')
 
-    joint_state = torch.as_tensor(lambdeval(diag), dtype=torch.complex64)
+    joint_state = torch.as_tensor(lambdeval(diag), dtype=torch.cdouble)
     projected_states, cols = get_2qubit_sphere_points(joint_state, n=n_samples)
 
     marker_states = get_remote_prep_marker_states()

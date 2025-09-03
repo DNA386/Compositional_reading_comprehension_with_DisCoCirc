@@ -11,5 +11,6 @@ setup(
         "lambeq>=0.5",
         "jupyter",
         "qutip",
+        "pandas",
     ]
 )
