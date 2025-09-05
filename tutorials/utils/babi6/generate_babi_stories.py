@@ -181,10 +181,17 @@ def generate(
             q_location = random.choice(world_state.locations)
         
             ans_class = Answers.yes if world_state.state[q_person].location == q_location else Answers.no
-            question = f"Is {q_person} in the {q_location}?\t{ans_class.value}\t{' '.join(str(i) for i in world_state.state[q_person].supporting_facts)}"
+            question = f"Is {q_person} in the {q_location}?"
 
-            return (sentences, question, ans_class.value), world_state
+            return {
+                "sentences": sentences,
+                "question": question,
+                "answer": ans_class.value,
+                "support": ' '.join(str(i) for i in world_state.state[q_person].supporting_facts),
+                "n_sentences": len(sentences),
+                "n_nouns": world_state.get_n_nouns(),
+                "question_nouns": (q_person, q_location),
+            }, world_state
         except Exception as e:
             pass
     raise ValueError("Ran out of attempts")
-

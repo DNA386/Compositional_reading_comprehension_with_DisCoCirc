@@ -159,12 +159,12 @@ class bAbI6Parser():
 def babi_sandwich_ar(self, box):
     # Very hacky frame expansion that appies correctly for the shapes encountered in bAbI 6
     if isinstance(box, Frame):
-        top = Box(f"{box.name}_top", box.dom, box.dom)
+        top = Box(f"[{box.name}]", box.dom, box.dom)
         # There's only one hole, which applies to the subject first.
         inside = babiSandwichFunctor(box.components[0])
         if len(inside.dom) < len(box.dom):
             inside = inside @ box.dom[len(inside.dom)]
-        bottom = Box(f"{box.name}_bottom", box.cod, box.cod)
+        bottom = Box(f"[\\{box.name}]", box.cod, box.cod)
         return top >> inside >> bottom
 
     return box
